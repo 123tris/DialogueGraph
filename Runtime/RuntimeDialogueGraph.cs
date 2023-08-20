@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using static System.String;
 
 namespace DialogueGraph.Runtime {
     [AddComponentMenu("Dialogue Graph/Dialogue Graph")]
@@ -11,20 +12,11 @@ namespace DialogueGraph.Runtime {
         public string CurrentAssetGuid;
         public List<DlogObjectData> PersistentData = new List<DlogObjectData>();
         public StringIntSerializableDictionary PersistentDataIndices = new StringIntSerializableDictionary();
-        public DlogObjectData CurrentData {
-            get {
-                if (string.IsNullOrEmpty(CurrentAssetGuid)) return null;
-                if (!PersistentDataIndices.ContainsKey(CurrentAssetGuid)) {
-                    PersistentDataIndices[CurrentAssetGuid] = PersistentData.Count;
-                    PersistentData.Add(new DlogObjectData());
-                }
+        public DlogObjectData CurrentData => IsNullOrEmpty(CurrentAssetGuid) ? null : PersistentData[CurrentIndex];
 
-                return PersistentData[PersistentDataIndices[CurrentAssetGuid]];
-            }
-        }
         public int CurrentIndex {
             get {
-                if (string.IsNullOrEmpty(CurrentAssetGuid)) return -1;
+                if (IsNullOrEmpty(CurrentAssetGuid)) return -1;
                 if (!PersistentDataIndices.ContainsKey(CurrentAssetGuid)) {
                     PersistentDataIndices[CurrentAssetGuid] = PersistentData.Count;
                     PersistentData.Add(new DlogObjectData());
@@ -117,7 +109,7 @@ namespace DialogueGraph.Runtime {
         }
 
         private void Progress(ConversationLine line) {
-            if (string.IsNullOrEmpty(line.Next)) {
+            if (IsNullOrEmpty(line.Next)) {
                 conversationDone = true;
                 currentNodeGuid = null;
                 return;
@@ -128,7 +120,7 @@ namespace DialogueGraph.Runtime {
 
         private bool EvaluateCheckTree(CheckTree tree, int lineIndex) {
             if (tree.NodeKind == CheckTree.Kind.Property) {
-                if (string.IsNullOrEmpty(tree.PropertyGuid)) return false;
+                if (IsNullOrEmpty(tree.PropertyGuid)) return false;
                 if (!CurrentData.CheckDataIndices.ContainsKey(tree.PropertyGuid)) return false;
                 int index = CurrentData.CheckDataIndices[tree.PropertyGuid];
                 if (index < 0 || index >= CurrentData.CheckData.Count) return false;
