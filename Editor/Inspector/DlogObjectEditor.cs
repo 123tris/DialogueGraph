@@ -25,7 +25,6 @@ namespace DialogueGraph
             graph.DlogObject = ObjectField("Dialogue Graph", graph.DlogObject, typeof(DlogObject), false) as DlogObject;
             if (GUI.changed && graph.DlogObject != null)
             {
-                Debug.Log("Changed Dialogue Graph Object");
                 UpdateRuntimeData(graph.DlogObject);
                 Undo.RecordObject(graph, "Updated GraphRuntimeData");
             }
