@@ -13,5 +13,11 @@ namespace DialogueGraph.Runtime {
             CustomData = customData;
             Property = property;
         }
+
+        public ActorData(Property property)
+        {
+            Name = property.DisplayName;
+            Property = property;
+        }
     }
 }

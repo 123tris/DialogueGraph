@@ -117,5 +117,20 @@ namespace DialogueGraph.Runtime {
             Edge edgeB = edges[1];
             return CheckTree.Binary(operation, ParseCheckTree(edgeA, propertyNodes), ParseCheckTree(edgeB, propertyNodes));
         }
+
+        public IEnumerable<Property> GetActorData()
+        {
+            return Properties.Where(p => p.Type == PropertyType.Actor);
+        }
+
+        public IEnumerable<Property> GetTriggerData()
+        {
+            return Properties.Where(p => p.Type == PropertyType.Trigger);
+        }
+
+        public IEnumerable<Property> GetCheckData()
+        {
+            return Properties.Where(p => p.Type == PropertyType.Check);
+        }
     }
 }

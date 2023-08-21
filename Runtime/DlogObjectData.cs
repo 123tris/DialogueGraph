@@ -1,40 +1,33 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace DialogueGraph.Runtime {
     [Serializable]
     public class DlogObjectData {
-        public StringIntSerializableDictionary ActorDataIndices;
-        public List<ActorData> ActorData;
-        public StringIntSerializableDictionary CheckDataIndices;
-        public List<CheckEvent> CheckData;
-        public StringIntSerializableDictionary TriggerDataIndices;
-        public List<TriggerEvent> TriggerData;
+        public ActorDataDictionary ActorData;
+        public CheckEventDictionary CheckData;
+        public TriggerEventDictionary TriggerData;
 
         public DlogObjectData() {
-            ActorDataIndices = new StringIntSerializableDictionary();
-            CheckDataIndices = new StringIntSerializableDictionary();
-            TriggerDataIndices = new StringIntSerializableDictionary();
-            ActorData = new List<ActorData>();
-            CheckData = new List<CheckEvent>();
-            TriggerData = new List<TriggerEvent>();
+            
+            ActorData = new ActorDataDictionary();
+            CheckData = new CheckEventDictionary();
+            TriggerData = new TriggerEventDictionary();
         }
 
         public void AddActorData(string guid, ActorData data) {
-            ActorDataIndices[guid] = ActorData.Count;
-            ActorData.Add(data);
+            ActorData[guid] = data;
         }
 
         public void AddCheckEvent(string guid, CheckEvent evt) {
-            CheckDataIndices[guid] = CheckData.Count;
-            CheckData.Add(evt);
+            CheckData[guid] = evt;
             evt.dynamic = true;
         }
 
         public void AddTriggerEvent(string guid, TriggerEvent evt) {
-            TriggerDataIndices[guid] = TriggerData.Count;
-            TriggerData.Add(evt);
-            evt.dynamic = true;
+            TriggerData[guid] = evt;
+            evt.dynamic = true; 
         }
     }
 }

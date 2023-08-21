@@ -1,16 +1,127 @@
 using DialogueGraph.Runtime;
+using Sirenix.OdinInspector.Editor;
+using System;
+using System.Reflection;
 using UnityEditor;
+using UnityEngine;
+using static UnityEditor.EditorGUILayout;
+using PropertyType = DialogueGraph.Runtime.PropertyType;
 
 namespace DialogueGraph
 {
     [CustomEditor(typeof(RuntimeDialogueGraph))]
-    public class DlogObjectEditor : Editor
+    public class DlogObjectEditor : OdinEditor
     {
+        RuntimeDialogueGraph graph => (RuntimeDialogueGraph) target;
+        public SerializableDictionary<string, ActorData> ActorData = new();
+        private bool actorFolded;
+        private bool triggersFolded;
+        private bool checksFolded;
+
         public override void OnInspectorGUI()
         {
-            var graph = (RuntimeDialogueGraph)target;
+            BeginVertical("Box");
+            LabelField("Dialogue Graph Data", EditorStyles.centeredGreyMiniLabel);
+            graph.DlogObject = ObjectField("Dialogue Graph", graph.DlogObject, typeof(DlogObject), false) as DlogObject;
+            if (GUI.changed && graph.DlogObject != null)
+            {
+                Debug.Log("Changed Dialogue Graph Object");
+                UpdateRuntimeData(graph.DlogObject);
+                Undo.RecordObject(graph, "Updated GraphRuntimeData");
+            }
 
-            graph.data
+            if (graph.DlogObject == null)
+            {
+                EndVertical();
+                return;
+            }
+
+            //Checks:
+            actorFolded = Foldout(actorFolded, "Actors");
+            if (actorFolded)
+            {
+                foreach (Property prop in graph.DlogObject.GetActorData())
+                {
+                    graph.Data.ActorData.TryGetValue(prop.Guid, out ActorData actorData);
+                    if (actorData == null)
+                        continue;
+                    prop.DisplayName = TextField("Actor name", prop.DisplayName);
+
+
+
+                    graph.Data.ActorData[prop.Guid].CustomData = ObjectField("Custom Actor Data", actorData.CustomData, typeof(ScriptableObject), false) as ScriptableObject;
+                }
+            }
+
+            triggersFolded = Foldout(triggersFolded, "Triggers");
+            if (triggersFolded)
+            {
+                int index = -1;
+                foreach (Property prop in graph.DlogObject.GetTriggerData())
+                {
+                    index++;
+                    graph.Data.TriggerData.TryGetValue(prop.Guid, out TriggerEvent triggerEvent);
+                    if (triggerEvent == null)
+                        continue;
+                    LabelField(prop.DisplayName);
+
+                    var so = new SerializedObject(target);
+                    var serializedData = so.FindProperty("Data");
+                    var triggerData = serializedData.FindPropertyRelative("TriggerData.m_values");
+
+                    var property = triggerData.GetArrayElementAtIndex(index);
+                    PropertyField(property);
+                    so.ApplyModifiedProperties();
+                }
+            }
+
+            checksFolded = Foldout(checksFolded, "Checks");
+            if (checksFolded)
+            {
+                int index = -1;
+                foreach (Property prop in graph.DlogObject.GetCheckData())
+                {
+                    index++;
+                    LabelField(prop.DisplayName);
+
+                    var so = new SerializedObject(target);
+                    var serializedData = so.FindProperty("Data");
+                    var triggerData = serializedData.FindPropertyRelative("CheckData.m_values");
+
+                    if (triggerData.arraySize <= index)
+                        continue;
+
+                    var property = triggerData.GetArrayElementAtIndex(index);
+                    PropertyField(property);
+                    so.ApplyModifiedProperties();
+                }
+            }
+
+            //LabelField("Debug");
+            //base.OnInspectorGUI();
+
+            EndVertical();
+
+            //graph.DlogObject EditorGUILayout.ObjectField()
+        }
+
+        private void UpdateRuntimeData(DlogObject dlogObject)
+        {
+            graph.Data = new DlogObjectData(); //clear data
+
+            foreach (Property property in graph.DlogObject.Properties)
+            {
+                if (property.Type == Runtime.PropertyType.Actor)
+                {
+                    graph.Data.ActorData[property.Guid] = new ActorData(property);
+                }
+
+                if (property.Type == PropertyType.Trigger)
+                    graph.Data.TriggerData[property.Guid] = new TriggerEvent();
+
+                if (property.Type == PropertyType.Check)
+                    graph.Data.CheckData[property.Guid] = new CheckEvent();
+            }
         }
     }
 }
