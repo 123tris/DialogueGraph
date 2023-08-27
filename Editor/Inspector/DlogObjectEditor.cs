@@ -1,6 +1,7 @@
 using DialogueGraph.Runtime;
 using Sirenix.OdinInspector.Editor;
 using System;
+using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
@@ -14,18 +15,21 @@ namespace DialogueGraph
     {
         RuntimeDialogueGraph graph => (RuntimeDialogueGraph) target;
         public SerializableDictionary<string, ActorData> ActorData = new();
-        private bool actorFolded;
-        private bool triggersFolded;
-        private bool checksFolded;
+        private static bool actorFolded;
+        private static bool triggersFolded;
+        private static bool checksFolded;
 
         public override void OnInspectorGUI()
         {
-            BeginVertical("Box");
-            LabelField("Dialogue Graph Data", EditorStyles.centeredGreyMiniLabel);
+            BeginVertical("HelpBox");
+            var centeredLabelStyle = EditorStyles.centeredGreyMiniLabel;
+            centeredLabelStyle.fontSize = 14;
+            LabelField("Dialogue Graph Data", centeredLabelStyle);
             graph.DlogObject = ObjectField("Dialogue Graph", graph.DlogObject, typeof(DlogObject), false) as DlogObject;
             if (GUI.changed && graph.DlogObject != null)
             {
-                UpdateRuntimeData(graph.DlogObject);
+                Debug.Log("Changed Dialogue Graph Object");
+                UpdateRuntimeData();
                 Undo.RecordObject(graph, "Updated GraphRuntimeData");
             }
 
@@ -36,23 +40,29 @@ namespace DialogueGraph
             }
 
             //Checks:
-            actorFolded = Foldout(actorFolded, "Actors");
+            BeginVertical("HelpBox");
+            actorFolded = GUILayout.Toggle(actorFolded, "Actors", "foldout");
             if (actorFolded)
             {
-                foreach (Property prop in graph.DlogObject.GetActorData())
+                for (int i = 0; i < graph.DlogObject.GetActorData().Count(); i++)
                 {
-                    graph.Data.ActorData.TryGetValue(prop.Guid, out ActorData actorData);
-                    if (actorData == null)
-                        continue;
-                    prop.DisplayName = TextField("Actor name", prop.DisplayName);
+                    var so = new SerializedObject(target);
+                    var serializedData = so.FindProperty("Data");
+                    var triggerData = serializedData.FindPropertyRelative("ActorData.m_values");
 
+                    var property = triggerData.GetArrayElementAtIndex(i);
+                    BeginVertical("HelpBox");
+                    PropertyField(property);
+                    EndVertical();
+                    so.ApplyModifiedProperties();
 
-
-                    graph.Data.ActorData[prop.Guid].CustomData = ObjectField("Custom Actor Data", actorData.CustomData, typeof(ScriptableObject), false) as ScriptableObject;
+                    //graph.Data.ActorData[prop.Guid].CustomData = ObjectField("Custom Actor Data", actorData.CustomData, typeof(ScriptableObject), false) as ScriptableObject;
                 }
             }
+            EndVertical();
 
-            triggersFolded = Foldout(triggersFolded, "Triggers");
+            BeginVertical("HelpBox");
+            triggersFolded = GUILayout.Toggle(triggersFolded, "Triggers", "foldout");
             if (triggersFolded)
             {
                 int index = -1;
@@ -62,7 +72,8 @@ namespace DialogueGraph
                     graph.Data.TriggerData.TryGetValue(prop.Guid, out TriggerEvent triggerEvent);
                     if (triggerEvent == null)
                         continue;
-                    LabelField(prop.DisplayName);
+
+                    LabelField(prop.DisplayName, centeredLabelStyle);
 
                     var so = new SerializedObject(target);
                     var serializedData = so.FindProperty("Data");
@@ -73,15 +84,17 @@ namespace DialogueGraph
                     so.ApplyModifiedProperties();
                 }
             }
+            EndVertical();
 
-            checksFolded = Foldout(checksFolded, "Checks");
+            BeginVertical("HelpBox");
+            checksFolded = GUILayout.Toggle(checksFolded, "Checks", "foldout");
             if (checksFolded)
             {
                 int index = -1;
                 foreach (Property prop in graph.DlogObject.GetCheckData())
                 {
                     index++;
-                    LabelField(prop.DisplayName);
+                    LabelField(prop.DisplayName, EditorStyles.miniBoldLabel);
 
                     var so = new SerializedObject(target);
                     var serializedData = so.FindProperty("Data");
@@ -95,6 +108,7 @@ namespace DialogueGraph
                     so.ApplyModifiedProperties();
                 }
             }
+            EndVertical();
 
             //LabelField("Debug");
             //base.OnInspectorGUI();
@@ -104,16 +118,14 @@ namespace DialogueGraph
             //graph.DlogObject EditorGUILayout.ObjectField()
         }
 
-        private void UpdateRuntimeData(DlogObject dlogObject)
+        private void UpdateRuntimeData()
         {
             graph.Data = new DlogObjectData(); //clear data
 
             foreach (Property property in graph.DlogObject.Properties)
             {
-                if (property.Type == Runtime.PropertyType.Actor)
-                {
+                if (property.Type == PropertyType.Actor)
                     graph.Data.ActorData[property.Guid] = new ActorData(property);
-                }
 
                 if (property.Type == PropertyType.Trigger)
                     graph.Data.TriggerData[property.Guid] = new TriggerEvent();
